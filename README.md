@@ -51,8 +51,8 @@
         赞助商招募中
       </td>
       <td align="center">
-        <a href="https://www.crmeb.com/xiazai" target="_blank">
-          <img height="120" src="https://crmebjavamer.oss-cn-beijing.aliyuncs.com/crmebimage/gitee/WechatIMG202.jpg" alt="ad">
+        <a href="https://github.crmeb.net/u/wxjava" target="_blank">
+          <img height="120" src="https://crmebjavamer.oss-cn-beijing.aliyuncs.com/crmebimage/image/2026/01/30/0a71b2b3535d42b187fff977c33faa30mh9gipgeja.png" alt="ad">
         </a>
       </td>
     </tr>
