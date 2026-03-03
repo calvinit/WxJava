@@ -53,7 +53,64 @@ configMap.put(mchId + "_" + config3.getAppId(), config3);
 payService.setMultiConfig(configMap);
 ```
 
-### 2. 切换配置的方式
+### 2. 获取配置的方式
+
+#### 方式一：直接获取配置（推荐，新功能）
+
+直接通过商户号和 appId 获取配置，**不依赖 ThreadLocal**，适用于多商户管理场景：
+
+```java
+// 精确获取指定商户号和 appId 的配置
+WxPayConfig config1 = payService.getConfig("1234567890", "wx1111111111111111");
+
+// 仅使用商户号获取配置（会返回该商户号的任意一个配置）
+// 注意：当存在多个 appId 时，返回结果基于内部存储顺序，不应依赖其稳定性
+WxPayConfig config = payService.getConfig("1234567890");
+
+// 使用获取的配置读取信息（仅用于读取配置，不用于执行支付操作）
+if (config != null) {
+  String appId = config.getAppId();
+  String mchKey = config.getMchKey();
+  String apiV3Key = config.getApiV3Key();
+  // ... 使用配置信息进行业务逻辑判断或记录
+}
+```
+
+**优势**：
+- 不依赖 ThreadLocal，可以在任何上下文中使用
+- 适合在异步场景、线程池等环境中使用
+- 线程安全，不会因为线程切换导致配置丢失
+- 可以同时获取多个不同的配置
+
+**使用场景**：
+- 仅需读取配置信息（如获取 mchKey、appId 等）
+- 不需要执行 WxPayService 的支付相关方法
+- 如需执行支付操作，请使用方式二的 switchover 方法
+
+#### 方式二：切换配置后使用（原有方式）
+
+通过切换配置，然后调用 `getConfig()` 获取当前配置或直接执行支付操作：
+
+```java
+// 精确切换到指定的配置
+payService.switchover("1234567890", "wx1111111111111111");
+WxPayConfig config = payService.getConfig();  // 获取当前切换的配置
+
+// 仅使用商户号切换
+payService.switchover("1234567890");
+config = payService.getConfig();  // 获取切换后的配置
+
+// 切换后可直接执行支付操作
+WxPayUnifiedOrderResult result = payService.unifiedOrder(request);
+```
+
+**注意**：此方式依赖 ThreadLocal，需要注意线程上下文的问题。
+
+**使用场景**：
+- 需要执行 WxPayService 的支付相关方法（如 unifiedOrder、refund 等）
+- 在同一线程中连续执行多个支付操作
+
+### 3. 切换配置的方式
 
 #### 方式一：精确切换（原有方式，向后兼容）
 
@@ -92,7 +149,7 @@ WxPayUnifiedOrderResult result = payService
     .unifiedOrder(request);
 ```
 
-### 3. 动态添加配置
+### 4. 动态添加配置
 
 ```java
 // 运行时动态添加新的 appId 配置
@@ -107,7 +164,7 @@ payService.addConfig("1234567890", "wx4444444444444444", newConfig);
 payService.switchover("1234567890", "wx4444444444444444");
 ```
 
-### 4. 移除配置
+### 5. 移除配置
 
 ```java
 // 移除特定的 appId 配置
@@ -174,24 +231,78 @@ WxPayRefundRequest refundRequest = new WxPayRefundRequest();
 WxPayRefundResult refundResult = payService.refund(refundRequest);
 ```
 
+### 场景4：多商户管理（推荐使用直接获取配置）
+
+```java
+// 在多商户管理系统中，可以直接获取指定商户的配置
+// 这种方式不依赖 ThreadLocal，适合异步场景和线程池环境
+
+public void processMerchantOrder(String mchId, String appId, Order order) {
+    // 直接获取配置，无需切换
+    WxPayConfig config = payService.getConfig(mchId, appId);
+    
+    if (config == null) {
+        log.error("找不到商户配置：mchId={}, appId={}", mchId, appId);
+        return;
+    }
+    
+    // 使用配置信息
+    String merchantKey = config.getMchKey();
+    String apiV3Key = config.getApiV3Key();
+    
+    // ... 处理订单逻辑
+}
+
+// 或者在不确定 appId 的情况下，仅通过商户号发起退款
+public void processRefund(String mchId, String outTradeNo) {
+    // 直接根据商户号切换（内部会选择该商户号下的一个配置）
+    if (!payService.switchover(mchId)) {
+        log.error("商户配置切换失败：mchId={}", mchId);
+        return;
+    }
+    
+    // 在完成上下文切换后，执行退款操作
+    WxPayRefundRequest request = new WxPayRefundRequest();
+    request.setOutTradeNo(outTradeNo);
+    // ... 设置其他退款参数
+    WxPayRefundResult refundResult = payService.refund(request);
+}
+```
+
+## 新增方法对比
+
+| 方法 | 说明 | 是否依赖 ThreadLocal | 适用场景 |
+|-----|------|---------------------|---------|
+| `getConfig()` | 获取当前配置 | 是 | 单线程同步场景 |
+| `getConfig(String mchId, String appId)` | 直接获取指定配置 | **否** | 多商户管理、异步场景、线程池 |
+| `getConfig(String mchId)` | 根据商户号获取配置 | **否** | 不确定 appId 的场景 |
+| `switchover(String mchId, String appId)` | 精确切换配置 | 是 | 需要切换上下文的场景 |
+| `switchover(String mchId)` | 根据商户号切换 | 是 | 不关心 appId 的切换场景 |
+
 ## 注意事项
 
 1. **向后兼容**：所有原有的使用方式继续有效，不需要修改现有代码。
 
 2. **配置隔离**：每个 `mchId + appId` 组合都是独立的配置，修改一个配置不会影响其他配置。
 
-3. **线程安全**：配置切换使用 `WxPayConfigHolder`（基于 `ThreadLocal`），是线程安全的。
+3. **线程安全**：
+   - 配置切换使用 `WxPayConfigHolder`（基于 `ThreadLocal`），是线程安全的
+   - 直接获取配置方法（`getConfig(mchId, appId)`）不依赖 ThreadLocal，可以在任何上下文中安全使用
 
 4. **自动切换**：在处理支付回调时，SDK 会自动根据回调中的 `mchId` 和 `appId` 切换到正确的配置。
 
 5. **推荐实践**：
-   - 如果知道具体的 appId，建议使用精确切换方式，避免歧义
-   - 如果使用仅商户号切换，确保该商户号下至少有一个可用的配置
+   - 如果知道具体的 appId，建议使用精确切换或获取方式，避免歧义
+   - 在多商户管理、异步场景、线程池等环境中，建议使用 `getConfig(mchId, appId)` 直接获取配置
+   - 如果使用仅商户号切换或获取，确保该商户号下至少有一个可用的配置
 
 ## 相关 API
 
 | 方法 | 参数 | 返回值 | 说明 |
 |-----|------|--------|------|
+| `getConfig()` | 无 | WxPayConfig | 获取当前配置（依赖 ThreadLocal） |
+| `getConfig(String mchId, String appId)` | 商户号, appId | WxPayConfig | 直接获取指定配置（不依赖 ThreadLocal） |
+| `getConfig(String mchId)` | 商户号 | WxPayConfig | 根据商户号获取配置（不依赖 ThreadLocal） |
 | `switchover(String mchId, String appId)` | 商户号, appId | boolean | 精确切换到指定配置 |
 | `switchover(String mchId)` | 商户号 | boolean | 仅使用商户号切换 |
 | `switchoverTo(String mchId, String appId)` | 商户号, appId | WxPayService | 精确切换，支持链式调用 |
