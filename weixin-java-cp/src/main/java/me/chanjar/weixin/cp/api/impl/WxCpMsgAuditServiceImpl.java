@@ -302,7 +302,7 @@ public class WxCpMsgAuditServiceImpl implements WxCpMsgAuditService {
     if (type != null) {
       jsonObject.addProperty("type", type);
     }
-    String responseContent = this.cpService.post(apiUrl, jsonObject.toString());
+    String responseContent = this.cpService.postForMsgAudit(apiUrl, jsonObject.toString());
     return WxCpGsonBuilder.create().fromJson(GsonParser.parse(responseContent).getAsJsonArray("ids"),
       new TypeToken<List<String>>() {
       }.getType());
@@ -313,14 +313,14 @@ public class WxCpMsgAuditServiceImpl implements WxCpMsgAuditService {
     final String apiUrl = this.cpService.getWxCpConfigStorage().getApiUrl(GET_GROUP_CHAT);
     JsonObject jsonObject = new JsonObject();
     jsonObject.addProperty("roomid", roomid);
-    String responseContent = this.cpService.post(apiUrl, jsonObject.toString());
+    String responseContent = this.cpService.postForMsgAudit(apiUrl, jsonObject.toString());
     return WxCpGroupChat.fromJson(responseContent);
   }
 
   @Override
   public WxCpAgreeInfo checkSingleAgree(@NonNull WxCpCheckAgreeRequest checkAgreeRequest) throws WxErrorException {
     String apiUrl = this.cpService.getWxCpConfigStorage().getApiUrl(CHECK_SINGLE_AGREE);
-    String responseContent = this.cpService.post(apiUrl, checkAgreeRequest.toJson());
+    String responseContent = this.cpService.postForMsgAudit(apiUrl, checkAgreeRequest.toJson());
     return WxCpAgreeInfo.fromJson(responseContent);
   }
 
