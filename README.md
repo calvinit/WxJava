@@ -18,9 +18,10 @@
   </a>
 </div>
 
-### 微信`Java`开发工具包，支持包括微信支付、开放平台、公众号、企业微信、视频号、小程序等微信功能模块的后端开发。
+### 微信 `Java` 开发工具包，支持包括微信支付、开放平台、公众号、企业微信、视频号、小程序等微信功能模块的后端开发。
+
+### 特别赞助
 <div align="center">
-  <b>特别赞助</b>
   <table cellspacing="0" cellpadding="0" width="500">
     <tr>
       <td align="center" colspan="3">
@@ -58,6 +59,36 @@
     </tr>
   </table>
 </div>
+
+### 目录索引
+- [快速开始（3分钟）](#快速开始3分钟)
+- [我该选哪个模块？](#我该选哪个模块)
+- [Maven 引用方式](#maven-引用方式)
+- [最小示例](#最小示例)
+- [重要信息](#重要信息)
+- [其他说明](#其他说明)
+- [版本说明](#版本说明)
+- [应用案例](#应用案例)
+- [特别赞助](#特别赞助)
+- [贡献者列表](#贡献者列表)
+
+### 快速开始（3分钟）
+1. 根据业务场景选择模块（见下方“我该选哪个模块？”）
+2. 引入 Maven 依赖并选择对应模块
+3. 参考最小示例完成初始化并调用 API
+
+### 我该选哪个模块？
+
+| 业务场景 | 模块 | artifactId |
+|---|---|---|
+| 微信公众号开发 | MP | `weixin-java-mp` |
+| 微信小程序开发 | MiniApp | `weixin-java-miniapp` |
+| 微信支付 | Pay | `weixin-java-pay` |
+| 企业微信 | CP | `weixin-java-cp` |
+| 微信开放平台（第三方平台） | Open | `weixin-java-open` |
+| 视频号 / 微信小店 | Channel | `weixin-java-channel` |
+
+> 移动端（iOS/Android）微信登录、分享等能力仍需集成微信官方客户端 SDK；本项目为服务端 SDK。
 
 ### 重要信息
 1. [`WxJava` 荣获 `GitCode` 2024年度十大开源社区奖项](https://mp.weixin.qq.com/s/wM_UlMsDm3IZ1CPPDvcvQw)。
@@ -112,50 +143,43 @@
 - **微信开放平台**（`weixin-java-open`）主要用于第三方平台，代公众号或小程序进行开发和管理
 
 
+
 ---------------------------------
-### HTTP 客户端支持
+### 最小示例
 
-本项目同时支持多种 HTTP 客户端实现，默认推荐使用 **Apache HttpClient 5.x**（最新稳定版本）。
+<details>
+<summary>公众号（MP）示例：获取 AccessToken</summary>
 
-#### 支持的 HTTP 客户端类型
+```java
+WxMpDefaultConfigImpl config = new WxMpDefaultConfigImpl();
+config.setAppId("your-app-id");
+config.setSecret("your-secret");
 
-| HTTP 客户端 | 说明 | 配置值 | 推荐程度 |
-|------------|------|--------|---------|
-| Apache HttpClient 5.x | Apache HttpComponents Client 5.x，最新版本 | `HttpComponents` | ⭐⭐⭐⭐⭐ 推荐 |
-| Apache HttpClient 4.x | Apache HttpClient 4.x，向后兼容 | `HttpClient` | ⭐⭐⭐⭐ 兼容 |
-| OkHttp | Square OkHttp 客户端 | `OkHttp` | ⭐⭐⭐ 可选 |
-| Jodd-http | Jodd 轻量级 HTTP 客户端 | `JoddHttp` | ⭐⭐ 可选 |
+WxMpService wxMpService = new WxMpServiceImpl();
+wxMpService.setWxMpConfigStorage(config);
 
-#### 配置方式
-
-**Spring Boot 配置示例：**
-
-```properties
-# 使用 HttpClient 5.x（推荐，MP/MiniApp/CP/Channel/QiDian 模块默认）
-wx.mp.config-storage.http-client-type=HttpComponents
-
-# 使用 HttpClient 4.x（兼容模式）
-wx.mp.config-storage.http-client-type=HttpClient
-
-# 使用 OkHttp
-wx.mp.config-storage.http-client-type=OkHttp
-
-# 使用 Jodd-http
-wx.mp.config-storage.http-client-type=JoddHttp
+String accessToken = wxMpService.getAccessToken();
+System.out.println(accessToken);
 ```
 
-**注意**：如果使用 Multi-Starter（如 `wx-java-mp-multi-spring-boot-starter`），枚举值需使用大写下划线格式：
-```properties
-# Multi-Starter 配置格式
-wx.mp.config-storage.http-client-type=HTTP_COMPONENTS  # 注意使用大写下划线
+</details>
+
+<details>
+<summary>小程序（MiniApp）示例：code2Session</summary>
+
+```java
+WxMaDefaultConfigImpl config = new WxMaDefaultConfigImpl();
+config.setAppid("your-app-id");
+config.setSecret("your-secret");
+
+WxMaService wxMaService = new WxMaServiceImpl();
+wxMaService.setWxMaConfig(config);
+
+WxMaJscode2SessionResult result = wxMaService.getUserService().getSessionInfo("js-code");
+System.out.println(result.getOpenid());
 ```
 
-**注意事项：**
-1. **MP、MiniApp、Channel、QiDian 模块**已完整支持 HttpClient 5.x，默认推荐使用
-2. **CP 模块**的支持情况取决于具体使用的 Starter 版本，请参考对应模块文档
-3. 如需使用 OkHttp 或 Jodd-http，需在项目中添加对应的依赖（scope为provided）
-4. HttpClient 4.x 和 HttpClient 5.x 可以共存，按需配置即可
-
+</details>
 
 ---------------------------------
 ### 版本说明
