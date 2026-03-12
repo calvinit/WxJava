@@ -40,11 +40,17 @@ public class WxCpHrServiceImpl implements WxCpHrService {
 
   @Override
   public WxCpHrEmployeeFieldDataResp getEmployeeFieldInfo(String userid, List<String> fields) throws WxErrorException {
+    return getEmployeeFieldInfo(userid, false, fields);
+  }
+
+  @Override
+  public WxCpHrEmployeeFieldDataResp getEmployeeFieldInfo(String userid, boolean getAll, List<String> fields) throws WxErrorException {
     if (userid == null || userid.trim().isEmpty()) {
       throw new IllegalArgumentException("userid 不能为空");
     }
     JsonObject jsonObject = new JsonObject();
     jsonObject.addProperty("userid", userid);
+    jsonObject.addProperty("get_all", getAll);
     if (fields != null && !fields.isEmpty()) {
       jsonObject.add("fields", WxCpGsonBuilder.create().toJsonTree(fields));
     }
